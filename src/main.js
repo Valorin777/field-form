@@ -1,317 +1,216 @@
-import "@fontsource-variable/manrope";
-import "@fontsource/anton/latin-400.css";
 import "./style.css";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { createSculpture } from "./sculpture.js";
+import { createWorld } from "./world.js";
 
 gsap.registerPlugin(ScrollTrigger);
-const $ = (s) => document.querySelector(s);
-const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
-let manualStill = false;
-try {
-  manualStill = localStorage.getItem("ff-motion") === "off";
-} catch {}
-let still = motionQuery.matches || manualStill;
-const sculpture = createSculpture($("#sculpture"), still);
-const stage = $(".stage");
-let motionContext;
-const phaseLabels = ["001 / SOLID", "002 / SEPARATE", "003 / TRANSFORM"];
-const phaseCopy = [
-  "One form. Infinite possibilities.",
-  "Pull something apart. Find something new.",
-  "A change of perspective changes everything.",
-];
-function syncMotion() {
-  still = motionQuery.matches || manualStill;
-  document.body.classList.toggle("motion-off", still);
-  $("#motion-toggle").setAttribute("aria-pressed", String(still));
-  $(".motion-status").textContent = still ? "off" : "on";
-  $("#motion-toggle").setAttribute(
-    "aria-label",
-    motionQuery.matches
-      ? "Reduced motion follows your system preference"
-      : still
-        ? "Enable motion"
-        : "Pause motion",
+const $ = (selector) => document.querySelector(selector);
+const clamp = (x) => Math.min(1, Math.max(0, x));
+const smooth = (a, b, x) => {
+  const t = clamp((x - a) / (b - a));
+  return t * t * (3 - 2 * t);
+};
+const windowOpacity = (start, end, p) =>
+  smooth(start, start + 0.075, p) * (1 - smooth(end - 0.075, end, p));
+const media = matchMedia("(prefers-reduced-motion: reduce)");
+const state = { p: 0 };
+let world,
+  timeline,
+  held = false,
+  failed = false,
+  generation = 0;
+const el = {
+  landscape: $(".landscape"),
+  sky: $(".sky-colour"),
+  moon: $(".moon"),
+  shadow: $(".moon-shadow"),
+  glow: $(".horizon-glow"),
+  hero: $(".hero-title"),
+  storm: $(".storm-title"),
+  end: $(".end-title"),
+  opening: $(".opening"),
+  field: $(".field-chapter"),
+  stormCopy: $(".storm-chapter"),
+  endCopy: $(".end-chapter"),
+  blade: $(".blade-light"),
+  iris: $(".iris"),
+  bar: $(".progress-track i"),
+  frame: $(".frame-label"),
+};
+let frame = -1;
+function compose(p) {
+  const mobile = innerWidth < 701;
+  const approach = smooth(0.03, 0.4, p),
+    heat = smooth(0.38, 0.59, p) * (1 - smooth(0.76, 0.94, p)),
+    leave = smooth(0.72, 0.99, p);
+  world?.update(p);
+  el.landscape.style.transform = `translate3d(${approach * (mobile ? -1.5 : -2.2) + leave * 2}%,${approach * 3 - leave * 2}%,0) scale(${1.04 + approach * 0.15 - leave * 0.12})`;
+  el.landscape.style.filter = `brightness(${0.74 - heat * 0.13 + leave * 0.1}) sepia(${heat * 0.9}) saturate(${0.65 + heat * 1.65}) hue-rotate(${-heat * 18}deg)`;
+  el.sky.style.background = `linear-gradient(${155 + p * 100}deg,rgba(${Math.round(25 + heat * 145)},${Math.round(57 - heat * 35)},${Math.round(71 - heat * 61)},${0.28 + heat * 0.4}),transparent 58%,rgba(83,24,12,${0.15 + heat * 0.35}))`;
+  el.glow.style.background = `radial-gradient(ellipse at ${57 - leave * 7}% 52%,rgba(${Math.round(128 + heat * 100)},${Math.round(161 - heat * 80)},${Math.round(167 - heat * 125)},${0.14 + heat * 0.22}),transparent 55%)`;
+  el.moon.style.transform = `translate3d(${-50 - approach * 30 + leave * 30}%,${approach * 18 + leave * 10}%,0) scale(${1 + approach * 0.35 - leave * 0.2})`;
+  el.moon.style.filter = `sepia(${heat}) saturate(${1 + heat * 3.5}) hue-rotate(${-heat * 27}deg)`;
+  el.moon.style.opacity = String(0.75 - approach * 0.1 + leave * 0.2);
+  el.shadow.style.opacity = String(
+    smooth(0.22, 0.36, p) * (1 - smooth(0.78, 0.95, p)),
   );
-  sculpture.setStill(still);
-  motionContext?.revert();
-  stage.dataset.phase = "0";
-  $("#phase-number").textContent = phaseLabels[0];
-  $("#phase-copy").textContent = phaseCopy[0];
-  const desktop = matchMedia("(min-width: 701px)").matches;
-  if (still) {
-    sculpture.update(0);
+  el.shadow.style.transform = `translate(${65 - approach * 45 - leave * 55}%,${-18 + approach * 8 + leave * 50}%)`;
+  const heroFade = 1 - smooth(0.035, 0.17, p);
+  el.hero.style.opacity = String(heroFade);
+  el.hero.style.transform = `translate3d(${-approach * 6}%,${-approach * 25}%,0) scale(${1 + approach * 0.2})`;
+  el.opening.style.opacity = String(1 - smooth(0.025, 0.13, p));
+  const fieldOpacity = windowOpacity(0.13, 0.47, p);
+  el.field.style.opacity = String(fieldOpacity);
+  el.field.style.transform = `translate3d(${(1 - smooth(0.13, 0.24, p)) * -5}%,${(1 - smooth(0.13, 0.24, p)) * 5}%,0)`;
+  const stormOpacity = windowOpacity(0.47, 0.79, p);
+  el.storm.style.opacity = String(stormOpacity * 0.15);
+  el.storm.style.transform = `translate3d(${8 - smooth(0.45, 0.78, p) * 18}%,0,0) scale(${1 + heat * 0.12})`;
+  el.stormCopy.style.opacity = String(stormOpacity);
+  el.stormCopy.style.transform = `translate3d(0,${(1 - smooth(0.47, 0.57, p)) * 7}%,0)`;
+  el.end.style.opacity = String(smooth(0.84, 0.98, p) * 0.12);
+  el.end.style.transform = `translate3d(${(1 - leave) * 10}%,0,0)`;
+  el.endCopy.style.opacity = String(smooth(0.8, 0.93, p));
+  el.endCopy.style.transform = `translate3d(0,${(1 - leave) * 14}%,0)`;
+  const blade = Math.sin(clamp((p - 0.43) / 0.13) * Math.PI);
+  el.blade.style.opacity = String(Math.pow(blade, 3) * 0.9);
+  el.blade.style.transform = `translateY(${(p - 0.49) * -300}vh) rotate(-25deg) scaleX(${smooth(0.43, 0.48, p)})`;
+  const iris = smooth(0.725, 0.78, p) * (1 - smooth(0.79, 0.86, p));
+  el.iris.style.opacity = String(iris * 0.94);
+  el.iris.style.clipPath = `circle(${iris * 78}% at ${50 + heat * 9}% 45%)`;
+  el.bar.style.transform = `scaleX(${p})`;
+  const current = p < 0.16 ? 0 : p < 0.48 ? 1 : p < 0.81 ? 2 : 3;
+  if (current !== frame) {
+    frame = current;
+    el.frame.innerHTML = `0${frame + 1} <span>/</span> 04`;
+    document.body.dataset.chapter = String(frame + 1);
+  }
+  document.body.style.setProperty("--p", p.toFixed(4));
+}
+function stop() {
+  timeline?.scrollTrigger?.kill();
+  timeline?.kill();
+  timeline = null;
+  world?.dispose();
+  world = null;
+  document.body.classList.remove("world-ready");
+}
+async function start() {
+  const id = ++generation;
+  stop();
+  const flat = media.matches || failed;
+  document.body.classList.toggle("flat-mode", flat);
+  document.body.dataset.motion = flat ? "still" : "full";
+  if (flat) {
+    document.body.dataset.ready = "true";
     return;
   }
-  motionContext = gsap.context(() => {
-    const state = { p: 0 };
-    const tl = gsap.timeline({
+  try {
+    const next = await createWorld($("#world-canvas"));
+    if (id !== generation) {
+      next.dispose();
+      return;
+    }
+    world = next;
+    world.pause(held);
+    document.body.classList.add("world-ready");
+    state.p = 0;
+    timeline = gsap.to(state, {
+      p: 1,
+      ease: "none",
+      onUpdate: () => compose(state.p),
       scrollTrigger: {
-        trigger: ".journey",
+        trigger: ".film",
         start: "top top",
         end: "bottom bottom",
-        scrub: 0.65,
-      },
-      onUpdate() {
-        const p = state.p;
-        sculpture.update(p);
-        const phase = p < 0.29 ? 0 : p < 0.68 ? 1 : 2;
-        stage.dataset.phase = String(phase);
-        $("#phase-number").textContent = phaseLabels[phase];
-        $("#phase-copy").textContent = phaseCopy[phase];
-        $(".chapter-active").textContent = String(phase + 1).padStart(2, "0");
+        scrub: 0.7,
+        invalidateOnRefresh: true,
       },
     });
-    tl.to(state, { p: 1, duration: 1, ease: "none" }, 0)
-      .to(
-        ".hero-field",
-        { xPercent: -50, opacity: 0, duration: 0.22, ease: "power2.in" },
-        0.08,
-      )
-      .to(
-        ".hero-form",
-        { xPercent: 60, opacity: 0, duration: 0.22, ease: "power2.in" },
-        0.08,
-      )
-      .to(
-        ".ink-aperture",
-        {
-          clipPath: "circle(85% at 50% 50%)",
-          duration: 0.24,
-          ease: "power2.inOut",
-        },
-        0.14,
-      )
-      .fromTo(
-        ".phase-type",
-        { opacity: 0, y: 70 },
-        { opacity: 1, y: 0, duration: 0.15, ease: "power2.out" },
-        0.29,
-      )
-      .to(".phase-type", { y: -130, opacity: 0, duration: 0.15 }, 0.55)
-      .to(
-        ".orange-curtain",
-        {
-          clipPath: "polygon(0 0%,100% 0%,100% 100%,0 100%)",
-          duration: 0.22,
-          ease: "power3.inOut",
-        },
-        0.59,
-      )
-      .fromTo(
-        ".heat-type",
-        { opacity: 0, y: 100 },
-        { opacity: 1, y: 0, duration: 0.16, ease: "power2.out" },
-        0.73,
-      )
-      .to(".orbit-label", { opacity: 0, duration: 0.1 }, 0.13)
-      .to(".chapter-track i", { width: "100%", duration: 1, ease: "none" }, 0);
-    gsap.utils.toArray(".study-art").forEach((art) => {
-      gsap.fromTo(
-        art,
-        { clipPath: "inset(12% 0 12% 0)" },
-        {
-          clipPath: "inset(0% 0 0% 0)",
-          ease: "none",
-          scrollTrigger: {
-            trigger: art,
-            start: "top 95%",
-            end: "top 35%",
-            scrub: true,
-          },
-        },
-      );
-    });
-    gsap.to(".about-mark", {
-      rotation: 90,
-      ease: "none",
-      scrollTrigger: {
-        trigger: ".about",
-        start: "top bottom",
-        end: "bottom top",
-        scrub: true,
-      },
-    });
-  });
-}
-syncMotion();
-$("#motion-toggle").addEventListener("click", () => {
-  if (motionQuery.matches) {
-    $("#motion-toggle").setAttribute(
-      "aria-label",
-      "Motion remains off because your system requests reduced motion",
+    ScrollTrigger.refresh();
+    compose(timeline.scrollTrigger.progress);
+    document.body.dataset.ready = "true";
+  } catch (error) {
+    failed = true;
+    document.body.classList.add("flat-mode");
+    document.body.dataset.motion = "fallback";
+    document.body.dataset.ready = "true";
+    console.info(
+      "LAST WIND: still artwork is active because WebGL is unavailable.",
     );
-    return;
   }
-  manualStill = !manualStill;
-  try {
-    localStorage.setItem("ff-motion", manualStill ? "off" : "on");
-  } catch {}
-  syncMotion();
-  ScrollTrigger.refresh();
-});
-motionQuery.addEventListener("change", () => {
-  syncMotion();
-  ScrollTrigger.refresh();
-});
-let wide = innerWidth > 700;
-window.addEventListener(
-  "resize",
-  () => {
-    const next = innerWidth > 700;
-    if (next !== wide) {
-      wide = next;
-      syncMotion();
-      ScrollTrigger.refresh();
-    }
-  },
-  { passive: true },
-);
-
-const actions = {
-  orbit: { art: ".orbit-art", off: "Set in motion", on: "Pause the orbit" },
-  glow: { art: ".glow-art", off: "Shift the light", on: "Return to amber" },
-  signal: {
-    art: ".signal-art",
-    off: "Change frequency",
-    on: "Reset frequency",
-  },
-};
-function activate(name) {
-  const conf = actions[name],
-    art = $(conf.art),
-    button = art.querySelector(".art-action");
-  const active = art.classList.toggle("is-active");
-  button.setAttribute("aria-pressed", String(active));
-  button.innerHTML = `${active ? conf.on : conf.off} <span aria-hidden="true">↗</span>`;
 }
-document
-  .querySelectorAll("[data-action]")
-  .forEach((button) =>
-    button.addEventListener("click", () => activate(button.dataset.action)),
-  );
-const studyData = {
-  orbit: {
-    kicker: "FF—01 / FORM & BALANCE",
-    title: "Almost in orbit.",
-    description:
-      "Three intersecting paths share a single centre. This study treats negative space as a material: the object is as much about what is missing as what is present.",
-    material: "Copper / imagined",
-    method: "Original vector geometry",
-    interaction: "Set the three paths in a continuous orbit.",
-  },
-  glow: {
-    kicker: "FF—02 / LIGHT & PERCEPTION",
-    title: "Nothing but light.",
-    description:
-      "Three translucent surfaces catch a field of colour. The geometry stays the same while warm amber becomes electric blue — a small experiment in how light changes our reading of a surface.",
-    material: "Refracted light",
-    method: "Layered gradients & perspective",
-    interaction: "Switch between amber and blue.",
-  },
-  signal: {
-    kicker: "FF—03 / RHYTHM & RESPONSE",
-    title: "Find your frequency.",
-    description:
-      "Concentric rings meet a field of imperfect lines. Change the frequency to contract the centre and disturb the rhythm. A graphic composition built from a few simple rules.",
-    material: "Ink / imagined",
-    method: "Original vector & line system",
-    interaction: "Change the spacing and orientation of the field.",
-  },
-};
-const dialog = $("#study-dialog");
-let selected = "orbit",
-  opener,
-  skipRestore = false;
-document.querySelectorAll("[data-study]").forEach((button) =>
-  button.addEventListener("click", () => {
-    opener = button;
-    selected = button.dataset.study;
-    const d = studyData[selected];
-    $("#dialog-kicker").textContent = d.kicker;
-    $("#dialog-title").textContent = d.title;
-    $("#dialog-description").textContent = d.description;
-    $("#dialog-details").replaceChildren();
-    for (const [label, value] of [
-      ["Material", d.material],
-      ["Method", d.method],
-      ["Interaction", d.interaction],
-    ]) {
-      const dt = document.createElement("dt"),
-        dd = document.createElement("dd");
-      dt.textContent = label;
-      dd.textContent = value;
-      $("#dialog-details").append(dt, dd);
-    }
-    dialog.showModal();
-  }),
-);
-$(".dialog-close").addEventListener("click", () => dialog.close());
-dialog.addEventListener("click", (e) => {
-  if (e.target === dialog) {
-    const r = dialog.getBoundingClientRect();
-    if (
-      e.clientX < r.left ||
-      e.clientX > r.right ||
-      e.clientY < r.top ||
-      e.clientY > r.bottom
-    )
-      dialog.close();
+const touchInput = matchMedia("(hover: none)").matches;
+const inputHint = touchInput ? "TAP" : "SPACE";
+$(".motion-hint").innerHTML = `${inputHint} <span>TO HOLD THE WIND</span>`;
+function hold(value) {
+  held = value;
+  world?.pause(held);
+  document.body.classList.toggle("ambient-paused", held);
+  $(".motion-hint").innerHTML =
+    `${inputHint} <span>TO ${held ? "RELEASE" : "HOLD"} THE WIND</span>`;
+  $("#motion-announcement").textContent = held
+    ? "Ambient movement paused. Scrolling still moves through the film."
+    : "Ambient movement resumed.";
+}
+document.addEventListener("keydown", (event) => {
+  if (
+    event.code === "Space" &&
+    !event.repeat &&
+    !media.matches &&
+    !failed &&
+    !event.target.closest("a,button,input,textarea,select,[contenteditable]")
+  ) {
+    event.preventDefault();
+    hold(!held);
   }
 });
-dialog.addEventListener("close", () => {
-  if (!skipRestore) opener?.focus({ preventScroll: true });
-  skipRestore = false;
+let touchStart;
+$(".viewport").addEventListener("pointerdown", (event) => {
+  if (event.pointerType === "touch")
+    touchStart = {
+      x: event.clientX,
+      y: event.clientY,
+      time: performance.now(),
+    };
 });
-$(".dialog-try").addEventListener("click", () => {
-  skipRestore = true;
-  dialog.close();
-  const art = $(actions[selected].art);
-  art.scrollIntoView({
-    behavior: still ? "instant" : "smooth",
-    block: "center",
-  });
-  activate(selected);
-  art.querySelector("button").focus({ preventScroll: true });
+$(".viewport").addEventListener("pointerup", (event) => {
+  if (
+    event.pointerType === "touch" &&
+    touchStart &&
+    Math.hypot(event.clientX - touchStart.x, event.clientY - touchStart.y) <
+      8 &&
+    performance.now() - touchStart.time < 350 &&
+    !media.matches &&
+    !failed
+  )
+    hold(!held);
+  touchStart = null;
 });
-// Same-page links transfer focus as well as moving the viewport.
-document.querySelectorAll('a[href^="#"]').forEach((link) =>
-  link.addEventListener("click", (e) => {
-    const target = $(link.getAttribute("href"));
-    if (!target) return;
-    e.preventDefault();
-    target.scrollIntoView({
-      behavior: still ? "instant" : "smooth",
-      block: "start",
-    });
-    if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
-    target.focus({ preventScroll: true });
-    history.replaceState(null, "", link.getAttribute("href"));
+$(".viewport").addEventListener("pointercancel", () => {
+  touchStart = null;
+});
+media.addEventListener("change", start);
+addEventListener("filmcontextlost", () => {
+  failed = true;
+  start();
+  document.body.dataset.motion = "fallback";
+});
+addEventListener("resize", () => compose(state.p), { passive: true });
+addEventListener("pagehide", () => {
+  world?.pause(true);
+});
+addEventListener("pageshow", (event) => {
+  if (event.persisted) world?.pause(held);
+});
+window.__LAST_WIND__ = {
+  metrics: () => ({
+    title: "LAST WIND",
+    mode: document.body.dataset.motion,
+    ready: document.body.dataset.ready === "true",
+    held,
+    chapter: frame + 1,
+    ...world?.metrics(),
   }),
-);
-if (!still) {
-  gsap.from(".header", {
-    opacity: 0,
-    y: -10,
-    duration: 0.8,
-    ease: "power2.out",
-  });
-  gsap.from("#sculpture", {
-    opacity: 0,
-    scale: 0.9,
-    rotation: -7,
-    duration: 1.2,
-    ease: "power3.out",
-  });
-}
-window.__FIELD_FORM__ = {
-  metrics: () => sculpture.metrics(),
-  capture: () => sculpture.capture(),
-  getMotion: () => ({ still, systemReduced: motionQuery.matches }),
-  version: "1.0.0",
+  pause: hold,
 };
-window.addEventListener("pagehide", (e) => {
-  if (!e.persisted) sculpture.dispose();
-});
+start();

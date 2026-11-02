@@ -1,8 +1,9 @@
 import { chromium } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
-const base = process.env.QA_URL || "http://127.0.0.1:4174/";
-const output = new URL("../qa-output/", import.meta.url).pathname;
+import { createHash } from "node:crypto";
+const base = process.env.QA_URL || "http://127.0.0.1:4175/field-form/";
+const output = new URL("../qa-output/last-wind/", import.meta.url).pathname;
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   headless: true,
@@ -11,6 +12,7 @@ const browser = await chromium.launch({
     : {}),
 });
 const report = {
+  title: "LAST WIND",
   url: base,
   date: new Date().toISOString(),
   checks: [],
@@ -18,256 +20,402 @@ const report = {
   warnings: [],
   screenshots: [],
   metrics: {},
+  network: {},
 };
-async function shot(page, name, fullPage = false) {
-  await page.screenshot({ path: output + name + ".png", fullPage });
-  report.screenshots.push(name + ".png");
-}
-function check(name, condition) {
-  assert.ok(condition, name);
+function check(name, value) {
+  assert.ok(value, name);
   report.checks.push(name);
 }
-async function overflow(page) {
+const origin = new URL(base).origin;
+function observe(page, label) {
+  page.on("pageerror", (e) => report.errors.push(`${label}: ${e.message}`));
+  page.on("console", (e) => {
+    if (e.type() === "error") report.errors.push(`${label}: ${e.text()}`);
+    if (e.type() === "warning" && !/GPU stall/.test(e.text()))
+      report.warnings.push(`${label}: ${e.text()}`);
+  });
+  page.on("requestfailed", (r) => {
+    if (
+      !/ERR_ABORTED/.test(r.failure()?.errorText || "") &&
+      !(label === "no-js" && r.failure()?.errorText === "csp")
+    )
+      report.errors.push(`${label}: ${r.url()} ${r.failure()?.errorText}`);
+  });
+  page.on("response", (r) => {
+    if (r.status() >= 400)
+      report.errors.push(`${label}: HTTP ${r.status()} ${r.url()}`);
+    if (!r.url().startsWith("data:") && new URL(r.url()).origin !== origin)
+      report.errors.push(`${label}: unexpected external request ${r.url()}`);
+  });
+}
+async function open(page) {
+  await page.goto(base, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.__LAST_WIND__?.metrics().ready);
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(1100);
+}
+async function metrics(page) {
+  return page.evaluate(() => window.__LAST_WIND__.metrics());
+}
+async function position(page, p) {
+  await page.evaluate(
+    (p) =>
+      scrollTo(
+        0,
+        (document.querySelector(".film").offsetHeight - innerHeight) * p,
+      ),
+    p,
+  );
+  await page.waitForTimeout(1050);
+}
+async function shot(page, name) {
+  await page.screenshot({ path: output + name + ".png" });
+  report.screenshots.push(name + ".png");
+}
+async function noOverflow(page) {
   return page.evaluate(
     () => document.documentElement.scrollWidth <= innerWidth + 1,
   );
 }
-const context = await browser.newContext({
-  viewport: { width: 1440, height: 900 },
-  deviceScaleFactor: 1,
-});
-const page = await context.newPage();
-page.on("pageerror", (e) => report.errors.push(e.message));
-page.on("console", (e) => {
-  if (e.type() === "error") report.errors.push(e.text());
-  if (e.type() === "warning" && !e.text().includes("GPU stall"))
-    report.warnings.push(e.text());
-});
-page.on("requestfailed", (r) =>
-  report.errors.push(r.url() + ": " + r.failure()?.errorText),
-);
-await page.goto(base, { waitUntil: "networkidle" });
-await page.evaluate(() => document.fonts.ready);
-await page.waitForTimeout(1300);
-check(
-  "desktop has working WebGL",
-  (await page.locator("#sculpture canvas").count()) === 1,
-);
-check("desktop does not overflow horizontally", await overflow(page));
-report.metrics.desktop = await page.evaluate(() =>
-  window.__FIELD_FORM__.metrics(),
-);
-await shot(page, "desktop-hero");
-const metrics0 = await page.evaluate(() => window.__FIELD_FORM__.metrics());
-await page.waitForTimeout(500);
-const metrics1 = await page.evaluate(() => window.__FIELD_FORM__.metrics());
-check("3D actually animates over time", metrics1.frames > metrics0.frames + 2);
-report.metrics.frameTiming = await page.evaluate(
-  () =>
-    new Promise((resolve) => {
-      const deltas = [];
-      let previous;
-      function frame(t) {
-        if (previous !== undefined) deltas.push(t - previous);
-        previous = t;
-        if (deltas.length < 60) requestAnimationFrame(frame);
-        else {
-          const ordered = [...deltas].sort((a, b) => a - b);
-          resolve({
-            medianMs: ordered[30],
-            p95Ms: ordered[57],
-            frames: 60,
-            averageFps: 60000 / deltas.reduce((a, b) => a + b, 0),
-          });
+try {
+  const desktop = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 1,
+  });
+  observe(desktop, "desktop");
+  await open(desktop);
+  check(
+    "New film title and four semantic chapters",
+    (await desktop.title()) === "LAST WIND — A scroll film" &&
+      (await desktop.locator(".chapter").count()) === 4,
+  );
+  check(
+    "No buttons, portfolio cards or sales forms",
+    (await desktop.locator('button,form,.study,[role="button"]').count()) === 0,
+  );
+  check(
+    "Desktop renders WebGL with all three texture layers",
+    (await metrics(desktop)).mode === "full" &&
+      (await metrics(desktop)).textures === 2,
+  );
+  report.metrics.desktop = await metrics(desktop);
+  report.metrics.renderer = await desktop.evaluate(() => {
+    const gl = document.querySelector("canvas").getContext("webgl2");
+    const debug = gl.getExtension("WEBGL_debug_renderer_info");
+    return debug
+      ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)
+      : gl.getParameter(gl.RENDERER);
+  });
+  const before = await metrics(desktop),
+    imageBefore = await desktop.screenshot();
+  await desktop.waitForTimeout(700);
+  const after = await metrics(desktop),
+    imageAfter = await desktop.screenshot();
+  check(
+    "Ambient motion advances while stationary",
+    after.frames > before.frames + 10 && after.time > before.time + 0.4,
+  );
+  check(
+    "Rendered pixels actually change while stationary",
+    !imageBefore.equals(imageAfter),
+  );
+  report.metrics.frameTiming = await desktop.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const deltas = [];
+        let previous;
+        function tick(t) {
+          if (previous) deltas.push(t - previous);
+          previous = t;
+          if (deltas.length < 120) requestAnimationFrame(tick);
+          else {
+            deltas.sort((a, b) => a - b);
+            resolve({
+              medianMs: deltas[60],
+              p95Ms: deltas[114],
+              meanMs: deltas.reduce((a, b) => a + b, 0) / deltas.length,
+            });
+          }
         }
-      }
-      requestAnimationFrame(frame);
-    }),
-);
-const travel = await page.evaluate(
-  () => document.querySelector(".journey").offsetHeight - innerHeight,
-);
-for (const [name, p] of [
-  ["desktop-separate", 0.46],
-  ["desktop-transform", 0.88],
-]) {
-  await page.evaluate((y) => scrollTo(0, y), travel * p);
-  await page.waitForTimeout(1600);
-  await shot(page, name);
-  report.metrics[name] = await page.evaluate(() =>
-    window.__FIELD_FORM__.metrics(),
+        requestAnimationFrame(tick);
+      }),
   );
-}
-check(
-  "scroll changes geometry and morph",
-  report.metrics["desktop-transform"].morph > 0.9,
-);
-await page.locator("#studies").scrollIntoViewIfNeeded();
-await page.waitForTimeout(300);
-await shot(page, "desktop-archive");
-for (const type of ["orbit", "glow", "signal"]) {
-  const b = page.locator(`[data-action="${type}"]`);
-  await b.scrollIntoViewIfNeeded();
-  await b.click();
+  await desktop.keyboard.press("Space");
+  await desktop.waitForTimeout(250);
+  const holdA = await metrics(desktop);
+  await desktop.waitForTimeout(450);
+  const holdB = await metrics(desktop);
   check(
-    `${type} first click activates`,
-    (await b.getAttribute("aria-pressed")) === "true",
+    "Space freezes ambient simulation",
+    holdA.paused && holdA.time === holdB.time && holdA.frames === holdB.frames,
   );
-  await b.click();
+  await position(desktop, 0.29);
+  const heldScroll = await metrics(desktop);
   check(
-    `${type} repeated click resets`,
-    (await b.getAttribute("aria-pressed")) === "false",
+    "Scrolling still directs camera when ambient is paused",
+    heldScroll.progress > 0.28 &&
+      heldScroll.time === holdB.time &&
+      heldScroll.camera[2] < holdB.camera[2],
   );
-  const open = page.locator(`[data-study="${type}"]`);
-  await open.click();
+  await desktop.keyboard.press("Space");
+  await desktop.waitForTimeout(400);
   check(
-    `${type} opens accessible dialog`,
-    await page.locator("dialog").evaluate((d) => d.open),
+    "Space resumes motion",
+    (await metrics(desktop)).time > heldScroll.time + 0.2,
   );
-  await page.keyboard.press("Escape");
+  for (const [scene, p] of [
+    ["opening", 0],
+    ["field", 0.29],
+    ["storm", 0.64],
+    ["return", 0.98],
+  ]) {
+    await position(desktop, p);
+    await shot(desktop, "desktop-" + scene);
+    report.metrics["desktop-" + scene] = await metrics(desktop);
+    check(
+      `${scene}: visible expected chapter`,
+      await desktop.evaluate(
+        () =>
+          Math.max(
+            ...[...document.querySelectorAll(".chapter")].map(
+              (x) => +getComputedStyle(x).opacity,
+            ),
+          ) > 0.95,
+      ),
+    );
+  }
   check(
-    `${type} Escape restores focus`,
-    await open.evaluate((e) => e === document.activeElement),
+    "Scroll transforms cool light into storm light",
+    report.metrics["desktop-storm"].heat > 0.9 &&
+      report.metrics["desktop-field"].heat < 0.1,
   );
+  check(
+    "Scroll creates close and distant camera compositions",
+    report.metrics["desktop-return"].camera[2] -
+      report.metrics["desktop-storm"].camera[2] >
+      9,
+  );
+  for (const p of [0.68, 0.1, 0.98, 0.29, 0]) {
+    await position(desktop, p);
+    check(
+      `Reverse scroll settles correctly at ${p}`,
+      Math.abs((await metrics(desktop)).progress - p) < 0.005,
+    );
+  }
+  for (const [width, height] of [
+    [320, 740],
+    [390, 844],
+    [768, 1024],
+    [1440, 900],
+    [1920, 1080],
+    [844, 390],
+  ]) {
+    await desktop.setViewportSize({ width, height });
+    await desktop.waitForTimeout(450);
+    check(
+      `No horizontal overflow at ${width}×${height}`,
+      await noOverflow(desktop),
+    );
+    check(
+      `WebGL remains live after resize ${width}×${height}`,
+      (await metrics(desktop)).mode === "full",
+    );
+  }
+  await desktop.setViewportSize({ width: 1440, height: 900 });
+  await position(desktop, 0);
+  await desktop.keyboard.press("Tab");
+  check(
+    "First Tab reveals skip link",
+    await desktop.evaluate(() =>
+      document.activeElement?.classList.contains("skip-link"),
+    ),
+  );
+  await desktop.keyboard.press("Enter");
+  await desktop.waitForTimeout(350);
+  check(
+    "Skip link reaches and focuses the afterword",
+    await desktop.evaluate(
+      () =>
+        document.activeElement?.id === "afterword" &&
+        document.querySelector("#afterword").getBoundingClientRect().top <
+          innerHeight,
+    ),
+  );
+  await desktop.goto(base, { waitUntil: "networkidle" });
+  await desktop.waitForFunction(() => window.__LAST_WIND__?.metrics().ready);
+  await desktop.evaluate(() => scrollTo(0, 0));
+  await desktop.keyboard.press("PageDown");
+  await desktop.waitForTimeout(1000);
+  check(
+    "Native Page Down advances the film",
+    (await metrics(desktop)).progress > 0.02,
+  );
+  report.network.desktop = await desktop.evaluate(() => {
+    const resources = performance.getEntriesByType("resource");
+    return {
+      resources: resources.length,
+      encodedBytes: resources.reduce((n, r) => n + r.encodedBodySize, 0),
+      largest: resources
+        .map((r) => ({
+          url: r.name.split("/").slice(-2).join("/"),
+          bytes: r.encodedBodySize,
+        }))
+        .sort((a, b) => b.bytes - a.bytes)
+        .slice(0, 6),
+    };
+  });
+  const mobile = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 3,
+    isMobile: true,
+    hasTouch: true,
+  });
+  observe(mobile, "mobile");
+  await open(mobile);
+  check("Mobile DPR is capped to 1.5", (await metrics(mobile)).dpr <= 1.5);
+  check(
+    "Mobile uses fewer rendered vertices",
+    (await metrics(mobile)).triangles < report.metrics.desktop.triangles,
+  );
+  for (const [scene, p] of [
+    ["opening", 0],
+    ["field", 0.29],
+    ["storm", 0.64],
+    ["return", 0.98],
+  ]) {
+    await position(mobile, p);
+    await shot(mobile, "mobile-" + scene);
+    check(`Mobile ${scene} has no overflow`, await noOverflow(mobile));
+    report.metrics["mobile-" + scene] = await metrics(mobile);
+  }
+  await mobile.touchscreen.tap(200, 320);
+  await mobile.waitForTimeout(200);
+  check("Touch tap can pause ambient movement", (await metrics(mobile)).paused);
+  await mobile.touchscreen.tap(200, 320);
+  await mobile.waitForTimeout(200);
+  check(
+    "Second touch tap resumes ambient movement",
+    !(await metrics(mobile)).paused,
+  );
+  const mobileBefore = await metrics(mobile);
+  await mobile.waitForTimeout(500);
+  check(
+    "Touch viewport keeps ambient movement alive",
+    (await metrics(mobile)).frames > mobileBefore.frames + 5,
+  );
+  const reduced = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: "reduce",
+  });
+  observe(reduced, "reduced");
+  await open(reduced);
+  check(
+    "Reduced motion avoids WebGL and pinning",
+    (await metrics(reduced)).mode === "still" &&
+      !("frames" in (await metrics(reduced))) &&
+      (await reduced.locator("body.flat-mode").count()) === 1,
+  );
+  check(
+    "All reduced-motion chapters flow naturally",
+    await reduced.evaluate(
+      () =>
+        [...document.querySelectorAll(".chapter")].every(
+          (el) =>
+            getComputedStyle(el).position === "relative" &&
+            +getComputedStyle(el).opacity === 1,
+        ) && document.body.scrollHeight < innerHeight * 5,
+    ),
+  );
+  await shot(reduced, "mobile-reduced-opening");
+  await reduced.locator(".storm-chapter").scrollIntoViewIfNeeded();
+  await shot(reduced, "mobile-reduced-storm");
+  for (let i = 0; i < 2; i++) {
+    await reduced.emulateMedia({ reducedMotion: "no-preference" });
+    await reduced.waitForFunction(() =>
+      document.body.classList.contains("world-ready"),
+    );
+    await reduced.emulateMedia({ reducedMotion: "reduce" });
+    await reduced.waitForTimeout(200);
+  }
+  check(
+    "System motion preference can be changed repeatedly without duplicate canvases",
+    (await reduced.locator("canvas").count()) === 1 &&
+      (await metrics(reduced)).mode === "still",
+  );
+  const fallback = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+  });
+  observe(fallback, "fallback");
+  await fallback.addInitScript(() => {
+    const get = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      if (type.startsWith("webgl")) return null;
+      return get.call(this, type, ...args);
+    };
+  });
+  await open(fallback);
+  check(
+    "WebGL-disabled browser receives readable static artwork",
+    (await metrics(fallback)).mode === "fallback" &&
+      (await fallback.locator("body.flat-mode").count()) === 1,
+  );
+  await shot(fallback, "mobile-webgl-fallback");
+  const nojs = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    javaScriptEnabled: false,
+  });
+  observe(nojs, "no-js");
+  await nojs.goto(base, { waitUntil: "networkidle" });
+  check(
+    "No-JavaScript still delivers all four chapters",
+    (await nojs.locator("body.flat-mode .chapter").count()) === 4 &&
+      (await nojs.locator("h1").textContent()).trim() === "Last Wind",
+  );
+  await shot(nojs, "mobile-no-javascript");
+  const context = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+  });
+  observe(context, "context-loss");
+  await open(context);
+  await context.evaluate(() =>
+    document
+      .querySelector("canvas")
+      .getContext("webgl2")
+      .getExtension("WEBGL_lose_context")
+      .loseContext(),
+  );
+  await context.waitForTimeout(400);
+  check(
+    "GPU context loss switches to the complete static film",
+    (await context.locator("body.flat-mode").count()) === 1 &&
+      (await metrics(context)).mode === "fallback",
+  );
+  check(
+    "No runtime, shader, asset or network errors",
+    report.errors.length === 0,
+  );
+  check("No browser warnings", report.warnings.length === 0);
+  report.success = true;
+} catch (error) {
+  report.success = false;
+  report.failure = error.stack;
 }
-await page.locator('[data-study="glow"]').click();
-await shot(page, "desktop-dialog");
-await page.locator(".dialog-try").click();
-check(
-  "dialog experiment activates matching artwork",
-  (await page.locator('[data-action="glow"]').getAttribute("aria-pressed")) ===
-    "true",
-);
-await page.locator("#about").scrollIntoViewIfNeeded();
-await shot(page, "desktop-about");
-await page.goto(base, { waitUntil: "networkidle" });
-await page.keyboard.press("Tab");
-check(
-  "keyboard reaches skip link first",
-  await page
-    .locator(".skip-link")
-    .evaluate((e) => e === document.activeElement),
-);
-await page.keyboard.press("Enter");
-check(
-  "skip link transfers focus to archive",
-  await page.locator("#studies").evaluate((e) => e === document.activeElement),
-);
-await page.evaluate(() => scrollTo(0, 0));
-await page.locator("#motion-toggle").click();
-await page.waitForTimeout(300);
-check(
-  "motion toggle removes sticky story",
-  (await page
-    .locator(".stage")
-    .evaluate((e) => getComputedStyle(e).position)) === "relative",
-);
-const f0 = await page.evaluate(() => window.__FIELD_FORM__.metrics().frames);
-await page.waitForTimeout(400);
-const f1 = await page.evaluate(() => window.__FIELD_FORM__.metrics().frames);
-check("paused 3D stops rendering", f0 === f1);
-await page.locator("#motion-toggle").click();
-await page.setViewportSize({ width: 390, height: 844 });
-await page.waitForTimeout(500);
-await page.evaluate(() => scrollTo(0, 0));
-await shot(page, "mobile-hero");
-check("390px mobile does not overflow", await overflow(page));
-check(
-  "mobile has its own shorter scroll story",
-  (await page
-    .locator(".stage")
-    .evaluate((e) => getComputedStyle(e).position)) === "sticky",
-);
-report.metrics.mobile = await page.evaluate(() =>
-  window.__FIELD_FORM__.metrics(),
-);
-const mobileTravel = await page.evaluate(
-  () => document.querySelector(".journey").offsetHeight - innerHeight,
-);
-for (const [name, p] of [
-  ["mobile-separate", 0.46],
-  ["mobile-transform", 0.88],
-]) {
-  await page.evaluate((y) => scrollTo(0, y), mobileTravel * p);
-  await page.waitForTimeout(1600);
-  await shot(page, name);
-}
-check(
-  "mobile scroll transforms real geometry",
-  (await page.evaluate(() => window.__FIELD_FORM__.metrics().morph)) > 0.9,
-);
-for (const [selector, name] of [
-  ["#study-01", "mobile-orbit"],
-  ["#study-02", "mobile-glow"],
-  ["#study-03", "mobile-signal"],
-  ["#about", "mobile-about"],
-]) {
-  await page.locator(selector).scrollIntoViewIfNeeded();
-  await page.waitForTimeout(120);
-  await shot(page, name);
-}
-check(
-  "skip link stays outside viewport after interaction",
-  await page
-    .locator(".skip-link")
-    .evaluate((e) => e.getBoundingClientRect().bottom < 0),
-);
-await shot(page, "mobile-full", true);
-for (const width of [320, 768, 1920]) {
-  await page.setViewportSize({ width, height: 900 });
-  await page.waitForTimeout(250);
-  check(`${width}px resize has no horizontal overflow`, await overflow(page));
-}
-await page.setViewportSize({ width: 1440, height: 900 });
-await page.evaluate(() => scrollTo(0, 0));
-await page.waitForTimeout(500);
-check(
-  "resize back to desktop restores scroll story",
-  (await page
-    .locator(".stage")
-    .evaluate((e) => getComputedStyle(e).position)) === "sticky",
-);
-await context.close();
-const reduced = await browser.newContext({
-  viewport: { width: 1440, height: 900 },
-  reducedMotion: "reduce",
-});
-const rp = await reduced.newPage();
-await rp.goto(base, { waitUntil: "networkidle" });
-await rp.waitForTimeout(500);
-check(
-  "system reduced motion respected",
-  await rp.evaluate(() => window.__FIELD_FORM__.getMotion().still),
-);
-check(
-  "reduced motion has no sticky pin",
-  (await rp.locator(".stage").evaluate((e) => getComputedStyle(e).position)) ===
-    "relative",
-);
-await shot(rp, "reduced-motion-hero");
-await reduced.close();
-const fallback = await browser.newContext({
-  viewport: { width: 390, height: 844 },
-});
-await fallback.addInitScript(() => {
-  const original = HTMLCanvasElement.prototype.getContext;
-  HTMLCanvasElement.prototype.getContext = function (t, ...args) {
-    return t === "webgl2" ? null : original.call(this, t, ...args);
-  };
-});
-const fp = await fallback.newPage();
-await fp.goto(base, { waitUntil: "networkidle" });
-check(
-  "WebGL fallback remains visible",
-  await fp.locator(".fallback-object").isVisible(),
-);
-check(
-  "WebGL failure preserves study interactions",
-  (await fp.locator('[data-study="orbit"]').count()) === 1,
-);
-await shot(fp, "mobile-webgl-fallback");
-await fallback.close();
-check("no browser errors", report.errors.length === 0);
+await writeFile(output + "qa-report.json", JSON.stringify(report, null, 2));
 await browser.close();
-await writeFile(output + "report.json", JSON.stringify(report, null, 2));
-console.log(JSON.stringify(report, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      success: report.success,
+      checks: report.checks.length,
+      errors: report.errors,
+      warnings: report.warnings,
+      failure: report.failure,
+      metrics: report.metrics.frameTiming,
+      renderer: report.metrics.renderer,
+      report: output + "qa-report.json",
+    },
+    null,
+    2,
+  ),
+);
+if (!report.success) process.exitCode = 1;

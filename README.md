@@ -1,58 +1,65 @@
-# FIELD / FORM
+# LAST WIND
 
-An original kinetic object archive by **Valorin**. A personal portfolio experiment in procedural form, editorial typography and scroll choreography.
+A cinematic samurai scroll film by Valorin. A moonlit field, one wanderer, and a world that never quite holds still.
 
-**[Open the live experience](https://Valorin777.github.io/field-form/)**
+**Live film:** https://valorin777.github.io/field-form/
 
-![FIELD / FORM — a ribbed metallic sculpture in front of oversized editorial typography](docs/preview.png)
+**Repository:** https://github.com/Valorin777/field-form
 
-## The experience
+The repository retains its original `field-form` address. The previous FIELD / FORM sculpture site remains in git history at `71108459fa687ae709722f1de5666e043050cd3b`.
 
-A ribbed metal ring becomes three separated arcs, then reforms as a new sculptural knot. An expanding circular aperture and a rising orange field carry it between three distinct material chapters. The object is generated mathematically in `src/sculpture.js`; no downloaded model or video is required.
+## The film
 
-Three interactive studies continue the story:
+Four continuous compositions move from silver moonlight through an ember-lit storm and back to the quiet field. Scrolling directs the camera, eclipse, colour, typography, light sweep and iris transition. Wind animates the grass and trailing cloth while layered procedural fog and particles keep the scene alive.
 
-- **Almost in orbit** — intersecting copper paths, with a controllable continuous rotation.
-- **Nothing but light** — layered translucent surfaces that shift from amber to blue.
-- **Find your frequency** — an original concentric graphic system that changes its rhythm.
+The character is original generated artwork composited into a layered WebGL scene. It is intentionally a detailed cinematic image with localized cloth deformation, not a skeletal 3D character model. Three original images total approximately 1.43 MB in WebP, including alpha transparency.
 
-On mobile, the same live sculpture follows a shorter scroll sequence with a camera framing designed for the narrow screen. Reduced motion replaces the sequence with naturally flowing, lightweight WebP renders of the same original sculpture. The renders can be regenerated with `QA_URL=http://127.0.0.1:5173/field-form/ node scripts/render-posters.mjs` while the development server runs. System reduced motion and the Motion control stop continuous movement and remove the sticky scroll sequence. Render resolution adapts to sustained frame cost on low-power devices. Keyboard users can skip the sequence; dialogs support Escape, focus containment and focus return. A vector sculpture remains visible when WebGL is unavailable.
+There are no accounts, forms, ads, analytics, cards, purchase links or visible buttons. All runtime assets and fonts are served from this repository.
 
 ## Run locally
-
-Requires Node.js 22.14+ and npm.
 
 ```sh
 npm ci
 npm run dev
-```
-
-```sh
 npm run build
 npm run preview
 ```
 
-The build uses the explicit `/field-form/` base path for GitHub Pages. `.github/workflows/pages.yml` builds and deploys the static site on pushes to `main`, with a manual trigger available as well.
+The Vite base is `/field-form/`, including local previews. Open the full URL Vite prints.
 
-## Browser verification
+## Motion and accessibility
 
-With the local server running, install Playwright's free Chromium and run:
+- Scroll, arrow keys or Page Down advance the film using native page scrolling.
+- Space pauses/resumes ambient movement; touch users can tap the artwork. The scroll-directed composition remains usable while paused.
+- A keyboard-visible skip link moves focus to the afterword.
+- `prefers-reduced-motion` delivers all four compositions in normal document flow, without WebGL, pinning or parallax.
+- The same complete still version works with JavaScript disabled, without WebGL 2, or after GPU context loss.
+- Mobile uses a different composition, fewer grass instances and particles, and a maximum rendering DPR of 1.5.
+- Rendering stops when the canvas is outside the viewport or the document is hidden.
+
+## Implementation
+
+Vanilla JavaScript, Three.js custom GLSL shaders, GSAP ScrollTrigger, and Vite. Anton and Manrope are self-hosted OFL fonts. There is no backend or paid service requirement.
+
+- `src/world.js` — camera, cloth, fog, instanced grass, particles, contact shadow and resource disposal.
+- `src/main.js` — scroll choreography, DOM layers, keyboard/touch pause and fallback lifecycle.
+- `src/style.css` — typography, atmosphere, responsive composition and the still version.
+- `docs/ART-DIRECTION.md` — design and generated-art prompts.
+- `docs/QA.md` — measured validation and limitations.
+
+## Verify
+
+With a production preview running:
 
 ```sh
 npx playwright install chromium
-QA_URL=http://127.0.0.1:5173/field-form/ npm run qa
+QA_URL=http://127.0.0.1:4173/field-form/ npm run qa
 ```
 
-The QA script checks actual WebGL rendering and geometry transformation across scroll positions, repeated study interactions, dialogs, keyboard navigation, reduced motion, fallback rendering and responsive resizing. Screenshots and the report are written to the ignored `qa-output/` directory. It uses headless Chromium and does not open a browser window.
+The script also accepts the public URL in `QA_URL`. On macOS it uses Chromium's Metal renderer in headless mode. `PLAYWRIGHT_BROWSERS_PATH` may point to an existing browser installation. Reports and screenshots go into ignored `qa-output/last-wind/`.
 
-## Stack and credits
+The Pages workflow builds and deploys pushes to `main`. GitHub Pages is the only public hosting target.
 
-- [Three.js](https://threejs.org/) — MIT, procedural WebGL geometry and lighting.
-- [GSAP / ScrollTrigger](https://gsap.com/) — free under the [GSAP Standard License](https://gsap.com/community/standard-license/), scroll choreography. This dependency retains its own license; the project MIT license does not replace it.
-- [Manrope](https://fontsource.org/fonts/manrope) and [Anton](https://fontsource.org/fonts/anton) — SIL Open Font License. Fonts are self-hosted; license texts are in `public/licenses/`.
-- [Vite](https://vite.dev/) — MIT, static build.
-- [Playwright](https://playwright.dev/) — Apache-2.0, development-only browser QA.
+## Licences
 
-All object geometry, vector artwork, graphic compositions and copy are original to this project. No private reference media is included. There are no accounts, payments, analytics or external runtime services. All dependencies can be used without payment for this project.
-
-Project source and original artwork: [MIT](LICENSE). Third-party software and fonts retain their respective licenses.
+Original project source is MIT licensed. Third-party notices remain in `public/licenses/`; GSAP's no-charge Standard licence is separate from MIT. Generated artwork was created specifically for this project. No private reference video, reference screenshot or third-party branded asset is included.

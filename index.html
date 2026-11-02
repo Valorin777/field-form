@@ -2,361 +2,124 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#eeeade" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090d11" />
     <meta
       name="description"
-      content="FIELD / FORM — an independent collection of kinetic objects. Three original studies in matter, light and motion by Valorin."
+      content="LAST WIND — a cinematic journey through a moonlit field. An original, living scroll film by Valorin."
     />
-    <meta property="og:title" content="FIELD / FORM — Objects in motion" />
+    <meta property="og:title" content="LAST WIND — A scroll film" />
     <meta
       property="og:description"
-      content="An experimental archive of shape, light and unexpected movement."
+      content="The field remembers. The night listens. Only the wind remains."
     />
     <meta property="og:type" content="website" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>FIELD / FORM — Objects in motion</title>
+    <link rel="preload" href="/art/field.webp" as="image" />
+    <link rel="preload" href="/art/ronin.webp" as="image" />
+    <title>LAST WIND — A scroll film</title>
   </head>
-  <body>
-    <a class="skip-link" href="#studies">Skip the motion sequence</a>
-    <header class="header">
-      <a class="wordmark" href="#top" aria-label="Field Form home"
-        >F<span class="brand-slash">/</span>F<span class="brand-dot">●</span></a
-      >
-      <span class="header-caption"
-        >Independent experiments<br />in a moving world.</span
-      >
-      <nav aria-label="Main navigation">
-        <a href="#studies">The archive <span>↗</span></a
-        ><a href="#about">About <span>↗</span></a
-        ><button id="motion-toggle" type="button" aria-pressed="false">
-          Motion <span class="motion-status">on</span><i aria-hidden="true"></i>
-        </button>
-      </nav>
-    </header>
-    <main id="top">
-      <section class="journey" aria-labelledby="main-title">
-        <div class="stage">
-          <div class="ink-aperture" aria-hidden="true"></div>
-          <div class="orange-curtain" aria-hidden="true"></div>
-          <div class="stage-grid" aria-hidden="true"></div>
-          <h1 id="main-title" class="sr-only">
-            FIELD / FORM. Objects in motion.
-          </h1>
-          <div class="hero-type" aria-hidden="true">
-            <div class="hero-field">FIELD<span class="type-star">✳</span></div>
-            <div class="hero-form">/ FORM</div>
+  <body class="flat-mode">
+    <a class="skip-link" href="#afterword">Skip the scroll film</a>
+    <main
+      id="film"
+      class="film"
+      aria-label="Last Wind, a cinematic scroll film"
+    >
+      <div class="viewport">
+        <div class="world" aria-hidden="true">
+          <div class="landscape"></div>
+          <div class="sky-colour"></div>
+          <div class="moon">
+            <div class="moon-surface"></div>
+            <div class="moon-shadow"></div>
           </div>
-          <div class="phase-type" aria-hidden="true">
-            <span>BREAK</span><span>THE LOOP.</span>
-          </div>
-          <div class="heat-type" aria-hidden="true">
-            <span>MATTER</span><span>IN MOTION.</span>
-          </div>
-          <div class="orbit-label" aria-hidden="true">
-            <span>↘</span> OBJECT NO. 001<br />CONTINUOUS / UNFINISHED
-          </div>
-          <div id="sculpture" aria-hidden="true">
-            <svg class="fallback-object" viewBox="0 0 600 600">
-              <defs>
-                <linearGradient id="metal">
-                  <stop stop-color="#302f32" />
-                  <stop offset=".28" stop-color="#f4f0e5" />
-                  <stop offset=".49" stop-color="#999a96" />
-                  <stop offset=".6" stop-color="#fcf8ed" />
-                  <stop offset="1" stop-color="#3a3738" />
-                </linearGradient>
-              </defs>
-              <g transform="translate(300 300) rotate(-30)">
-                <ellipse
-                  rx="170"
-                  ry="210"
-                  fill="none"
-                  stroke="url(#metal)"
-                  stroke-width="88"
-                />
-                <ellipse
-                  rx="170"
-                  ry="210"
-                  fill="none"
-                  stroke="#e2592a"
-                  stroke-width="3"
-                />
-              </g>
-            </svg>
-          </div>
-          <div class="crosshair crosshair-one" aria-hidden="true">+</div>
-          <div class="crosshair crosshair-two" aria-hidden="true">+</div>
-          <div class="stage-bottom">
-            <div class="stage-intro">
-              <span class="eyebrow">A COLLECTION BY VALORIN</span>
-              <p>Curiosity takes shape.<br />Then refuses to sit still.</p>
+          <div class="horizon-glow"></div>
+          <div class="world-shade"></div>
+        </div>
+        <div class="titles" aria-hidden="true">
+          <div class="hero-title"><span>LAST</span><span>WIND</span></div>
+          <div class="storm-title">STORM</div>
+          <div class="end-title">REMAINS</div>
+        </div>
+        <canvas id="world-canvas" aria-hidden="true"></canvas>
+        <div class="fallback-ronin" aria-hidden="true"></div>
+        <div class="lens-vignette" aria-hidden="true"></div>
+        <div class="blade-light" aria-hidden="true"></div>
+        <div class="iris" aria-hidden="true"></div>
+        <div class="grain" aria-hidden="true"></div>
+        <header class="film-header">
+          <span class="film-mark"><i></i> LAST WIND</span>
+          <span class="edition">A SCROLL FILM <span>—</span> VOL. 02</span>
+          <span class="author">BY VALORIN</span>
+        </header>
+        <div class="chapters">
+          <section class="chapter opening" aria-labelledby="title">
+            <div class="still-art" aria-hidden="true"></div>
+            <div class="opening-note">
+              <span class="eyebrow">A FIELD. A WANDERER. A FINAL BREATH.</span>
+              <h1 id="title">Last Wind</h1>
             </div>
-            <div class="stage-note">
-              <span class="eyebrow" id="phase-number">001 / SOLID</span>
-              <p id="phase-copy">One form. Infinite possibilities.</p>
+            <p class="opening-line">
+              Some stories<br />are written in silence.
+            </p>
+            <div class="scroll-cue" aria-hidden="true">
+              <span class="scroll-stem"></span
+              ><span>SCROLL INTO THE NIGHT</span>
             </div>
-            <a class="scroll-cue" href="#studies"
-              ><span>SCROLL TO EXPLORE</span
-              ><span class="scroll-arrow">↓</span></a
+          </section>
+          <section class="chapter field-chapter" aria-labelledby="field-title">
+            <div class="still-art" aria-hidden="true"></div>
+            <div class="chapter-copy">
+              <span class="eyebrow">I — THE FIELD</span>
+              <h2 id="field-title">THE FIELD<br /><em>REMEMBERS.</em></h2>
+              <p>A thousand blades bend.<br />Not one forgets the wind.</p>
+            </div>
+            <span class="poem-vertical" aria-hidden="true"
+              >THE QUIET BEFORE EVERYTHING</span
             >
-          </div>
-          <div class="chapter-track" aria-label="Material chapters">
-            <span class="chapter-active">01</span>
-            <div><i></i></div>
-            <span>03</span>
-          </div>
+          </section>
+          <section class="chapter storm-chapter" aria-labelledby="storm-title">
+            <div class="still-art" aria-hidden="true"></div>
+            <div class="chapter-copy">
+              <span class="eyebrow">II — THE AWAKENING</span>
+              <h2 id="storm-title">IN STILLNESS,<br /><em>A STORM.</em></h2>
+              <p>
+                The world holds its breath.<br />The blade catches the last
+                light.
+              </p>
+            </div>
+          </section>
+          <section class="chapter end-chapter" aria-labelledby="end-title">
+            <div class="still-art" aria-hidden="true"></div>
+            <div class="end-copy">
+              <span class="eyebrow">III — THE RETURN</span>
+              <h2 id="end-title">ONLY THE WIND<br /><em>REMAINS.</em></h2>
+              <p>Nothing to conquer.<br />Nowhere to arrive.</p>
+            </div>
+          </section>
         </div>
-      </section>
-      <div class="mobile-chapters">
-        <div class="mobile-chapter dark">
-          <span class="eyebrow">002 / SEPARATE</span>
-          <h2>Break<br />the loop.</h2>
-          <img
-            class="mobile-object"
-            src="/objects/separate.webp"
-            width="1094"
-            height="837"
-            alt=""
-            loading="lazy"
-          />
-          <p>Pull something apart.<br />Find something new.</p>
+        <div class="film-bottom" aria-hidden="true">
+          <span class="frame-label">01 <span>/</span> 04</span>
+          <div class="progress-track"><i></i></div>
+          <span class="motion-hint">SPACE <span>TO HOLD THE WIND</span></span>
         </div>
-        <div class="mobile-chapter orange">
-          <span class="eyebrow">003 / TRANSFORM</span>
-          <h2>Matter<br />in motion.</h2>
-          <img
-            class="mobile-object"
-            src="/objects/transform.webp"
-            width="1094"
-            height="837"
-            alt=""
-            loading="lazy"
-          />
-          <p>A change of perspective<br />changes everything.</p>
-        </div>
+        <span class="sr-only" id="motion-instructions"
+          >Scroll or use the arrow and Page Down keys to move through four
+          scenes. Press Space, or tap the artwork on a touchscreen, to pause
+          ambient movement. Your system reduced-motion setting displays a still,
+          naturally scrolling version.</span
+        >
+        <span class="sr-only" id="motion-announcement" role="status"></span>
       </div>
-      <section class="archive" id="studies" aria-labelledby="archive-title">
-        <div class="section-top">
-          <span class="eyebrow">THE ARCHIVE / VOL. 01</span
-          ><span class="eyebrow">THREE STUDIES. NO FINAL ANSWERS.</span>
-        </div>
-        <div class="archive-heading">
-          <h2 id="archive-title">
-            Not quite objects.<br /><span>More like possibilities.</span>
-          </h2>
-          <p>
-            A small collection of self-initiated experiments.<br />Made to
-            explore what happens between<br />the physical and the impossible.
-          </p>
-        </div>
-        <article class="study study-orbit" id="study-01">
-          <div class="study-art orbit-art">
-            <div class="art-grid"></div>
-            <span class="art-word">ORBIT</span
-            ><svg
-              class="orbit-drawing"
-              viewBox="0 0 600 600"
-              aria-hidden="true"
-            >
-              <defs>
-                <linearGradient id="ribbon">
-                  <stop stop-color="#8b4028" />
-                  <stop offset=".28" stop-color="#f7b66b" />
-                  <stop offset=".53" stop-color="#ffead0" />
-                  <stop offset=".71" stop-color="#a64a27" />
-                  <stop offset="1" stop-color="#48251b" />
-                </linearGradient>
-              </defs>
-              <g fill="none" stroke="url(#ribbon)" stroke-width="55">
-                <ellipse
-                  cx="300"
-                  cy="300"
-                  rx="190"
-                  ry="97"
-                  transform="rotate(-35 300 300)"
-                />
-                <ellipse
-                  cx="300"
-                  cy="300"
-                  rx="190"
-                  ry="97"
-                  transform="rotate(35 300 300)"
-                />
-                <ellipse
-                  cx="300"
-                  cy="300"
-                  rx="190"
-                  ry="97"
-                  transform="rotate(90 300 300)"
-                />
-              </g></svg
-            ><span class="art-corner">FF—01<br />FORM / BALANCE</span
-            ><button
-              class="art-action"
-              type="button"
-              data-action="orbit"
-              aria-pressed="false"
-            >
-              Set in motion <span>↗</span>
-            </button>
-          </div>
-          <div class="study-info">
-            <span class="eyebrow">01 / FORM & BALANCE</span>
-            <h3>
-              Almost<br />
-              in orbit.
-            </h3>
-            <p>
-              Three paths. One centre. An exploration of balance, where a rigid
-              structure begins to feel weightless.
-            </p>
-            <button class="text-button" type="button" data-study="orbit">
-              Explore the study <span>↗</span>
-            </button>
-            <div class="tags">
-              <span>Procedural form</span><span>2026</span>
-            </div>
-          </div>
-        </article>
-        <article class="study study-afterglow" id="study-02">
-          <div class="study-art glow-art">
-            <div class="glow-orb"></div>
-            <div class="glass-panel panel-one"></div>
-            <div class="glass-panel panel-two"></div>
-            <div class="glass-panel panel-three"></div>
-            <span class="glow-word">AFTER<br />GLOW</span
-            ><span class="art-corner">FF—02<br />LIGHT / PERCEPTION</span
-            ><button
-              class="art-action"
-              type="button"
-              data-action="glow"
-              aria-pressed="false"
-            >
-              Shift the light <span>↗</span>
-            </button>
-          </div>
-          <div class="study-info">
-            <span class="eyebrow">02 / LIGHT & PERCEPTION</span>
-            <h3>
-              Nothing<br />
-              but light.
-            </h3>
-            <p>
-              A surface without a fixed identity. Amber becomes electric blue.
-              The form stays; the feeling changes.
-            </p>
-            <button class="text-button" type="button" data-study="glow">
-              Explore the study <span>↗</span>
-            </button>
-            <div class="tags">
-              <span>Light experiment</span><span>2026</span>
-            </div>
-          </div>
-        </article>
-        <article class="study study-signal" id="study-03">
-          <div class="study-art signal-art">
-            <div class="signal-lines" aria-hidden="true"></div>
-            <div class="signal-disc">
-              <svg viewBox="0 0 400 400" aria-hidden="true">
-                <g fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="200" cy="200" r="160" />
-                  <circle cx="200" cy="200" r="135" />
-                  <circle cx="200" cy="200" r="110" />
-                  <circle cx="200" cy="200" r="85" />
-                  <circle cx="200" cy="200" r="60" />
-                  <path d="M0 200H400M200 0V400" />
-                </g></svg
-              ><i></i>
-            </div>
-            <span class="signal-word">A NEW<br />FREQUENCY.</span
-            ><span class="art-corner">FF—03<br />RHYTHM / RESPONSE</span
-            ><button
-              class="art-action"
-              type="button"
-              data-action="signal"
-              aria-pressed="false"
-            >
-              Change frequency <span>↗</span>
-            </button>
-          </div>
-          <div class="study-info">
-            <span class="eyebrow">03 / RHYTHM & RESPONSE</span>
-            <h3>
-              Find your<br />
-              frequency.
-            </h3>
-            <p>
-              Order, interrupted. A graphic system of rings and lines, tuned by
-              a single unexpected movement.
-            </p>
-            <button class="text-button" type="button" data-study="signal">
-              Explore the study <span>↗</span>
-            </button>
-            <div class="tags">
-              <span>Kinetic composition</span><span>2026</span>
-            </div>
-          </div>
-        </article>
-      </section>
-      <section class="about" id="about" aria-labelledby="about-title">
-        <div class="section-top">
-          <span class="eyebrow">THE THINKING BEHIND THE THINGS</span
-          ><span aria-hidden="true">↙</span>
-        </div>
-        <div class="about-content">
-          <div class="about-mark" aria-hidden="true">✳</div>
-          <div>
-            <h2 id="about-title">Less expected.<br /><em>More felt.</em></h2>
-            <p>
-              FIELD / FORM is a personal playground for digital craft. A place
-              for objects that don’t need to exist, colours that shouldn’t work,
-              and ideas best understood by moving through them.
-            </p>
-            <p>
-              No brief. No boundaries.<br />Just the pleasure of making
-              something move.
-            </p>
-            <a
-              class="text-button"
-              href="https://github.com/Valorin777"
-              target="_blank"
-              rel="noopener noreferrer"
-              >More from Valorin <span>↗</span></a
-            >
-          </div>
-        </div>
-      </section>
-      <footer>
-        <div class="footer-top">
-          <span class="eyebrow">END OF VOLUME 01</span
-          ><a href="#top">Back to the beginning ↑</a>
-        </div>
-        <div class="footer-title">STAY CURIOUS<span>↗</span></div>
-        <div class="footer-bottom">
-          <a class="footer-brand" href="#top">FIELD / FORM</a
-          ><span>CONCEIVED IN CURIOSITY. BUILT IN MOTION.</span
-          ><a
-            href="https://github.com/Valorin777/field-form"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Source on GitHub ↗</a
-          ><span>© 2026</span>
-        </div>
-      </footer>
     </main>
-    <dialog id="study-dialog" aria-labelledby="dialog-title">
-      <button class="dialog-close" type="button" aria-label="Close study">
-        Close ×
-      </button>
-      <div class="eyebrow" id="dialog-kicker"></div>
-      <h2 id="dialog-title"></h2>
-      <p id="dialog-description"></p>
-      <dl id="dialog-details"></dl>
-      <button type="button" class="text-button dialog-try">
-        Try the experiment ↗
-      </button>
-    </dialog>
+    <footer id="afterword" tabindex="-1">
+      <span class="footer-mark">LAST WIND</span>
+      <p>AN ORIGINAL DIGITAL NOCTURNE</p>
+      <span
+        >CONCEIVED BY VALORIN <span class="footer-divider">/</span> 2026</span
+      >
+    </footer>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
