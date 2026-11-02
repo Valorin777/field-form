@@ -2,8 +2,6 @@
 
 An original kinetic object archive by **Valorin**. A personal portfolio experiment in procedural form, editorial typography and scroll choreography.
 
-**[View the experience](https://Valorin777.github.io/field-form/)**
-
 ![FIELD / FORM — a ribbed metallic sculpture in front of oversized editorial typography](docs/preview.png)
 
 ## The experience
@@ -32,7 +30,7 @@ npm run build
 npm run preview
 ```
 
-The build uses relative asset paths and works beneath a GitHub Pages repository path. `.github/workflows/pages.yml` builds and deploys the static site on pushes to `main`.
+The build uses relative asset paths and works beneath a GitHub Pages repository path. `.github/workflows/pages.yml` can build and deploy the static site after GitHub Pages is enabled. Deployment is manual.
 
 ## Browser verification
 
