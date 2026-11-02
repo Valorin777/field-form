@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 export default defineConfig({
-  base: "./",
+  base: "/field-form/",
   build: {
     target: "es2022",
     rolldownOptions: {
